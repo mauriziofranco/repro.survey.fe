@@ -2,8 +2,11 @@ import React from "react";
 import Button from "react-bootstrap/Button";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ButtonToolbar from "react-bootstrap/ButtonToolbar";
+import * as Environment from '../env.js';
 
 class Surveys extends React.Component {
+
+
     constructor(props) {
         super(props);
         this.state = {
@@ -20,7 +23,7 @@ class Surveys extends React.Component {
         const tokenId = queryParameters.get("tokenId")
         console.log(tokenId)
 
-        fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/survey/getSurveyForCandidate/' + tokenId).then(response => response.json())
+        fetch(Environment.APPLICATION_BACKEND_PREFIX_URL + 'survey/getSurveyForCandidate/' + tokenId).then(response => response.json())
             .then(responseData => {
                 this.setState({
                     questions: responseData.questions,
@@ -44,7 +47,7 @@ class Surveys extends React.Component {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item)
         };
-        fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/surveyreplyrequest/start/', requestOptions)
+        fetch(Environment.APPLICATION_BACKEND_PREFIX_URL + 'surveyreplyrequest/start/', requestOptions)
             .then(response => response.json())
         console.log(item)
     }
