@@ -152,7 +152,7 @@ class Surveys extends React.Component {
         )
         return (
             <div align="center">
-                <div id="start" class="start">
+                <div id="start" className="start">
                     <h1>Corso Full Stack Developer.</h1>
                     <h2>Questionario d'ingresso.</h2>
                     <br />
