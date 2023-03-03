@@ -4,6 +4,7 @@ import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ButtonToolbar from "react-bootstrap/ButtonToolbar";
 import * as Environment from '../env.js';
 import { LoadingSpinnerComponent } from "../loader/LoadingSpinnerComponent.js";
+import Timer from "../timer/Timer.js";
 
 class Surveys extends React.Component {
     constructor(props) {
@@ -17,7 +18,9 @@ class Surveys extends React.Component {
             timer: "",
             surveyLoading: true,
             errore: false,
-            buttonReady:false
+            buttonReady: false,
+            formatTimer: "",
+            shouldRenderTime: false
         };
     }
 
@@ -31,7 +34,7 @@ class Surveys extends React.Component {
                 this.setState({
                     questions: responseData.questions,
                     survey: responseData,
-                    timer: responseData.time,
+                    timer: responseData.time * 60,
                     surveyLoading: false
                 })
             })
@@ -63,26 +66,25 @@ class Surveys extends React.Component {
         const button = []
         const numSlides = document.getElementsByClassName("slide").length;
         for (let i = 0; i < numSlides; i++) {
-            var idButton = 'Button'+(i+1);
+            var idButton = 'Button' + (i + 1);
             button.push(<Button variant="outline-secondary" id={idButton} onClick={() => this.handleSelectedSlide(i)}>{i + 1}</Button>)
         }
-        if(numSlides>0 && this.state.buttonReady === false){
+        if (numSlides > 0 && this.state.buttonReady === false) {
             console.log("sono maggiore di zero")
             this.setState({
-                buttonReady:true
+                buttonReady: true
             });
         }
-        console.log(this.state.buttonReady)
         return button;
     }
 
-    highlightButton(index){
+    highlightButton(index) {
         var indexButtons = document.getElementById("indexButton").children
         for (var i = 0; i < indexButtons.length; i++) {
             var buttonChild = indexButtons[i];
             buttonChild.setAttribute("class", "btn btn-outline-secondary")
-          }
-        var button = document.getElementById("Button"+(index+1))
+        }
+        var button = document.getElementById("Button" + (index + 1))
         button.setAttribute("class", "btn btn-dark")
 
     }
@@ -124,9 +126,9 @@ class Surveys extends React.Component {
         document.getElementsByClassName("slide")[index].style.display = "block";
         this.setState({ currentSlide: index });
         this.highlightButton(index)
-        if (index === numSlides-1){
+        if (index === numSlides - 1) {
             document.getElementsByClassName("sendSurvey")[0].style.display = "block";
-        }else{
+        } else {
             document.getElementsByClassName("sendSurvey")[0].style.display = "none";
         }
     };
@@ -136,7 +138,7 @@ class Surveys extends React.Component {
         document.getElementsByClassName("start")[0].style.display = "none";
         document.getElementsByClassName("movementButtons")[0].style.display = "block";
         document.getElementsByClassName("slide")[0].style.display = "block";
-
+        this.setState({shouldRenderTime:true})
     };
 
     sendSurvey = () => {
@@ -192,16 +194,18 @@ class Surveys extends React.Component {
             default: ;
         }
     }
+
     render() {
-        const { surveyLoading, error } = this.state;
+        const { surveyLoading, error,shouldRenderTime } = this.state;
 
         if (surveyLoading) {
-            return <LoadingSpinnerComponent/>
+            return <LoadingSpinnerComponent />
         }
 
         if (error) {
             return <div>Error loading survey</div>;
         }
+
         const list = this.state.questions.map((element, i) => {
             return (
 
@@ -280,7 +284,7 @@ class Surveys extends React.Component {
                         <br />Avrà solo una possibilità di compilare il questionario.
                     </p>
                     <br />
-                    <Button disabled={!this.state.buttonReady} id="startSurvey" variant="dark" onClick={() => { this.startSurvey(); this.createSurveyreplies(); this.highlightButton(0) }}>Inizia il questionario</Button>
+                    <Button disabled={!this.state.buttonReady} id="startSurvey" variant="dark" onClick={() => { this.startSurvey(); this.createSurveyreplies(); this.highlightButton(0); }}>Inizia il questionario</Button>
                 </div>
                 {list}
                 <ButtonToolbar className="movementButtons" style={{ display: "none" }}>
@@ -294,6 +298,9 @@ class Surveys extends React.Component {
                         <Button variant="dark" className="me-2" onClick={this.handleNextSlide}>Avanti</Button>
                     </ButtonGroup>
                 </ButtonToolbar>
+                <h3>
+                    {shouldRenderTime && <Timer duration={this.state.timer} sendSurveyProp={this.sendSurvey}/>}
+                </h3>
                 <br />
                 <br />
                 <br />
