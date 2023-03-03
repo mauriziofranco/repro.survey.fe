@@ -37,6 +37,7 @@ class Surveys extends React.Component {
             })
             .catch(err => {
                 console.error(err)
+                window.alert(`Error loading survey: ${err.message}`)
                 this.setState({ error: true, surveyLoading: false })
             });
     }
