@@ -3,18 +3,21 @@ import Button from "react-bootstrap/Button";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ButtonToolbar from "react-bootstrap/ButtonToolbar";
 import * as Environment from '../env.js';
+import { LoadingSpinnerComponent } from "../loader/LoadingSpinnerComponent.js";
 
 class Surveys extends React.Component {
-
-
     constructor(props) {
         super(props);
         this.state = {
+            surveyReplyId: 0,
             currentSlide: 0,
             questions: [],
             questionsDiv: [],
             survey: "",
-            timer: ""
+            timer: "",
+            surveyLoading: true,
+            errore: false,
+            buttonReady:false
         };
     }
 
@@ -32,7 +35,10 @@ class Surveys extends React.Component {
                     surveyLoading: false
                 })
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err)
+                this.setState({ error: true, surveyLoading: false })
+            });
     }
 
     createSurveyreplies = () => {
@@ -47,30 +53,37 @@ class Surveys extends React.Component {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item)
         };
-        fetch(Environment.APPLICATION_BACKEND_PREFIX_URL + 'surveyreplyrequest/start/', requestOptions)
-            .then(response => response.json())
-        console.log(item)
-    }
-
-    getIndexButtons() {
-        console.log("getIndexButtons")
-        this.setState({ indexButton: [] })
-        const numSlides = document.getElementsByClassName("slide").length;
-        for (let i = 0; i < numSlides; i++) {
-            this.setState(prevState => ({
-                indexButton: [prevState.indexButton, <Button onClick={() => this.handleSelectedSlide(i)}>{i + 1}</Button>]
-            }))
-        }
+        // fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/surveyreplyrequest/start/', requestOptions)
+        //     .then(response => response.json())
     }
 
     getButtons() {
-        console.log("getIndexButtons")
+        console.log("getButtons")
         const button = []
         const numSlides = document.getElementsByClassName("slide").length;
         for (let i = 0; i < numSlides; i++) {
-            button.push(<Button onClick={() => this.handleSelectedSlide(i)}>{i + 1}</Button>)
+            var idButton = 'Button'+(i+1);
+            button.push(<Button variant="outline-secondary" id={idButton} onClick={() => this.handleSelectedSlide(i)}>{i + 1}</Button>)
         }
+        if(numSlides>0 && this.state.buttonReady === false){
+            console.log("sono maggiore di zero")
+            this.setState({
+                buttonReady:true
+            });
+        }
+        console.log(this.state.buttonReady)
         return button;
+    }
+
+    highlightButton(index){
+        var indexButtons = document.getElementById("indexButton").children
+        for (var i = 0; i < indexButtons.length; i++) {
+            var buttonChild = indexButtons[i];
+            buttonChild.setAttribute("class", "btn btn-outline-secondary")
+          }
+        var button = document.getElementById("Button"+(index+1))
+        button.setAttribute("class", "btn btn-dark")
+
     }
 
     handleNextSlide = () => {
@@ -81,24 +94,40 @@ class Surveys extends React.Component {
             document.getElementsByClassName("slide")[this.state.currentSlide].style.display = "none";
             document.getElementsByClassName("slide")[nextSlide].style.display = "block";
             this.setState({ currentSlide: nextSlide });
-        }
-    };
+            this.highlightButton(nextSlide)
+            if (this.state.currentSlide === numSlides - 2) {
+                document.getElementsByClassName("sendSurvey")[0].style.display = "block";
+            }
+        };
+    }
 
     handlePrevSlide = () => {
         console.log("handlePrevSlide")
+        const numSlides = document.getElementsByClassName("slide").length;
         if (this.state.currentSlide !== 0) {
             const prevSlide = this.state.currentSlide - 1;
             document.getElementsByClassName("slide")[this.state.currentSlide].style.display = "none";
             document.getElementsByClassName("slide")[prevSlide].style.display = "block";
             this.setState({ currentSlide: prevSlide });
+            this.highlightButton(prevSlide)
+            if (this.state.currentSlide !== numSlides - 2) {
+                document.getElementsByClassName("sendSurvey")[0].style.display = "none";
+            }
         }
     };
 
     handleSelectedSlide = index => {
         console.log("handleSelectedSlide " + index)
+        const numSlides = document.getElementsByClassName("slide").length;
         document.getElementsByClassName("slide")[this.state.currentSlide].style.display = "none";
         document.getElementsByClassName("slide")[index].style.display = "block";
         this.setState({ currentSlide: index });
+        this.highlightButton(index)
+        if (index === numSlides-1){
+            document.getElementsByClassName("sendSurvey")[0].style.display = "block";
+        }else{
+            document.getElementsByClassName("sendSurvey")[0].style.display = "none";
+        }
     };
 
     startSurvey = () => {
@@ -106,49 +135,128 @@ class Surveys extends React.Component {
         document.getElementsByClassName("start")[0].style.display = "none";
         document.getElementsByClassName("movementButtons")[0].style.display = "block";
         document.getElementsByClassName("slide")[0].style.display = "block";
+
     };
 
+    sendSurvey = () => {
+        const numSlides = document.getElementsByClassName("slide").length;
+        var checkDiv = "";
+        var checkboxes = [];
+        var jsonArrayResponse = [];
+
+        for (let i = 0; i < numSlides; i++) {
+            var jsonResponse = {};
+            checkDiv = document.getElementById(i)
+            checkboxes = checkDiv.getElementsByTagName("input")
+            jsonResponse.questionId = checkDiv.getAttribute("name")
+            for (let i = 0; i < checkboxes.length; i++) {
+                if (checkboxes[i].checked) {
+                    this.switchResponse(i, "true", jsonResponse)
+                }
+                else {
+                    this.switchResponse(i, "false", jsonResponse)
+                }
+            }
+
+            jsonArrayResponse.push(jsonResponse)
+        }
+
+        const requestOptions = {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jsonArrayResponse)
+        };
+        // fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/surveyreplyrequest/start/', requestOptions)
+        //     .then(response => response.json())
+    }
+
+    switchResponse(index, value, jsonResponse) {
+        switch (index) {
+            case 0: jsonResponse.cansa = value
+                break;
+            case 1: jsonResponse.cansb = value
+                break;
+            case 2: jsonResponse.cansc = value
+                break;
+            case 3: jsonResponse.cansd = value
+                break;
+            case 4: jsonResponse.canse = value
+                break;
+            case 5: jsonResponse.cansf = value
+                break;
+            case 6: jsonResponse.cansg = value
+                break;
+            case 7: jsonResponse.cansh = value
+                break;
+            default: ;
+        }
+    }
     render() {
+        const { surveyLoading, error } = this.state;
+
+        if (surveyLoading) {
+            return <LoadingSpinnerComponent/>
+        }
+
+        if (error) {
+            return <div>Error loading survey</div>;
+        }
         const list = this.state.questions.map((element, i) => {
             return (
 
-                <div className="slide" style={{ display: "none" }}>
-                    <p>Question: {i+1}</p>
+                <div id={i} name={element.id} className="slide" style={{ display: "none" }}>
+                    <p>Question: {i + 1}</p>
                     <div>
                         <h4>{element.label}</h4>
                     </div>
-                    <div>
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansa}</span>
-                    </div>
-                    <div>
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansb}</span>
-                    </div>
-                    <div>
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansc}</span>
-                    </div>
-                    <div>
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansd}</span>
-                    </div>
-                    <div>
-                        <span><input type="checkbox" /></span>
-                        <span>{element.anse}</span>
-                    </div>
-                    <div >
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansf}</span>
-                    </div>
-                    <div >
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansg}</span>
-                    </div>
-                    <div >
-                        <span><input type="checkbox" /></span>
-                        <span>{element.ansh}</span>
-                    </div>
+                    {element.ansa !== null ?
+                        <div>
+                            <span><input id="ansa" type="checkbox" /></span>
+                            <span>{element.ansa}</span>
+                        </div>
+                        : null}
+                    {element.ansb !== null ?
+                        <div>
+                            <span><input id="ansb" type="checkbox" /></span>
+                            <span>{element.ansb}</span>
+                        </div>
+                        : null}
+                    {element.ansc !== null ?
+                        <div>
+                            <span><input id="ansc" type="checkbox" /></span>
+                            <span>{element.ansc}</span>
+                        </div>
+                        : null}
+                    {element.ansd !== null ?
+                        <div>
+                            <span><input id="ansd" type="checkbox" /></span>
+                            <span>{element.ansd}</span>
+                        </div>
+                        : null}
+                    {element.anse !== null ?
+                        <div>
+                            <span><input id="anse" type="checkbox" /></span>
+                            <span>{element.anse}</span>
+                        </div>
+                        : null}
+                    {element.ansf !== null ?
+                        <div >
+                            <span><input id="ansf" type="checkbox" /></span>
+                            <span>{element.ansf}</span>
+                        </div>
+                        : null}
+                    {element.ansg !== null ?
+                        <div >
+                            <span><input id="ansg" type="checkbox" /></span>
+                            <span>{element.ansg}</span>
+                        </div>
+                        : null}
+                    {element.ansh !== null ?
+                        <div >
+                            <span><input id="ansh" type="checkbox" /></span>
+                            <span>{element.ansh}</span>
+                        </div>
+                        : null}
                 </div>
             )
         },
@@ -171,23 +279,28 @@ class Surveys extends React.Component {
                         <br />Avrà solo una possibilità di compilare il questionario.
                     </p>
                     <br />
-                    <Button id="startSurvey" onClick={() => { this.startSurvey(); this.createSurveyreplies() }}>Inizia il questionario</Button>
+                    <Button disabled={!this.state.buttonReady} id="startSurvey" variant="dark" onClick={() => { this.startSurvey(); this.createSurveyreplies(); this.highlightButton(0) }}>Inizia il questionario</Button>
                 </div>
                 {list}
                 <ButtonToolbar className="movementButtons" style={{ display: "none" }}>
                     <ButtonGroup className="me-2" aria-label="First group">
-                        <Button onClick={this.handlePrevSlide}>Indietro</Button>
+                        <Button variant="dark" onClick={this.handlePrevSlide}>Indietro</Button>
                     </ButtonGroup>
-                    <ButtonGroup className="me-2" aria-label="Second group">
+                    <ButtonGroup id="indexButton" className="me-2" aria-label="Second group">
                         {this.getButtons()}
                     </ButtonGroup>
                     <ButtonGroup>
-                        <Button onClick={this.handleNextSlide}>Avanti</Button>
+                        <Button variant="dark" className="me-2" onClick={this.handleNextSlide}>Avanti</Button>
                     </ButtonGroup>
                 </ButtonToolbar>
+                <br />
+                <br />
+                <br />
+                <Button className="sendSurvey" variant="danger" size="lg" onClick={this.sendSurvey} style={{ display: "none" }}>
+                    Invia il questionario
+                </Button>
             </div>
         )
-
     }
 }
 export default Surveys;
