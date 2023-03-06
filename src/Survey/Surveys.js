@@ -20,7 +20,8 @@ class Surveys extends React.Component {
             errore: false,
             buttonReady: false,
             formatTimer: "",
-            shouldRenderTime: false
+            shouldRenderTime: false,
+            idUpdate:"",
         };
     }
 
@@ -49,16 +50,28 @@ class Surveys extends React.Component {
         console.log("createSurveyreplies")
         const item = {
             surveyId: this.state.survey.surveyId,
-            userId: this.state.survey.userId,
-            userTokenId: this.state.survey.userTokenId
+            userTokenId: this.state.survey.candidateTokenId,
+            candidateId: this.state.survey.candidateId
         };
         const requestOptions = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item)
         };
-        // fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/surveyreplyrequest/start/', requestOptions)
-        //     .then(response => response.json())
+        fetch(Environment.APPLICATION_BACKEND_PREFIX_URL + 'surveyreplyrequest/start/', requestOptions)
+        .then(response => {
+            if (response.status === 201) {
+                return response.json();
+            } else {
+                console.log(response.status);
+            }
+        })
+        .then(data => {
+            console.log("risposta del json: " + JSON.stringify(data));
+            this.setState({
+                idUpdate : data.id
+            })
+        })
     }
 
     getButtons() {
@@ -138,7 +151,7 @@ class Surveys extends React.Component {
         document.getElementsByClassName("start")[0].style.display = "none";
         document.getElementsByClassName("movementButtons")[0].style.display = "block";
         document.getElementsByClassName("slide")[0].style.display = "block";
-        this.setState({shouldRenderTime:true})
+        this.setState({ shouldRenderTime: true })
     };
 
     sendSurvey = () => {
@@ -164,13 +177,39 @@ class Surveys extends React.Component {
             jsonArrayResponse.push(jsonResponse)
         }
 
+        const item = {
+            surveyId: this.state.survey.surveyId,
+            userTokenId: this.state.survey.candidateTokenId,
+            candidateId: this.state.survey.candidateId,
+            answers : jsonArrayResponse,
+        };
+
+        console.log(jsonArrayResponse)
+
         const requestOptions = {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(jsonArrayResponse)
+            body: JSON.stringify(item)
         };
-        // fetch('http://centauri.proximainformatica.com/cerepro.hr.backend/dev/api/v1/surveyreplyrequest/start/', requestOptions)
-        //     .then(response => response.json())
+        const id = this.state.idUpdate
+        fetch(Environment.APPLICATION_BACKEND_PREFIX_URL + 'surveyreplyrequest/end/'+ id, requestOptions)
+            .then(response => {
+                if (response.status === 200) {
+                    response.json()
+                    this.completeQuestion()
+                } else {
+                    console.log(response.status);
+                }
+            })
+    }
+
+    completeQuestion = () => {
+        document.getElementsByClassName("sendSurvey")[0].style.display = "none";
+        document.getElementsByClassName("movementButtons")[0].style.display = "none";
+        document.getElementsByClassName("questionComplete")[0].style.display = "block";
+        document.getElementsByClassName("slide")[0].style.display = "none";
+        document.getElementsByClassName("list")[0].style.display = "none";
+        this.setState({shouldRenderTime:false})
     }
 
     switchResponse(index, value, jsonResponse) {
@@ -196,7 +235,7 @@ class Surveys extends React.Component {
     }
 
     render() {
-        const { surveyLoading, error,shouldRenderTime } = this.state;
+        const { surveyLoading, error, shouldRenderTime } = this.state;
 
         if (surveyLoading) {
             return <LoadingSpinnerComponent />
@@ -286,7 +325,12 @@ class Surveys extends React.Component {
                     <br />
                     <Button disabled={!this.state.buttonReady} id="startSurvey" variant="dark" onClick={() => { this.startSurvey(); this.createSurveyreplies(); this.highlightButton(0); }}>Inizia il questionario</Button>
                 </div>
+                <div className="questionComplete" style={{ display: "none" }} >
+                    Questionario Inviato
+                </div>
+                <div className="list" style={{ display: "block" }}>
                 {list}
+                </div>
                 <ButtonToolbar className="movementButtons" style={{ display: "none" }}>
                     <ButtonGroup className="me-2" aria-label="First group">
                         <Button variant="dark" onClick={this.handlePrevSlide}>Indietro</Button>
@@ -298,8 +342,8 @@ class Surveys extends React.Component {
                         <Button variant="dark" className="me-2" onClick={this.handleNextSlide}>Avanti</Button>
                     </ButtonGroup>
                 </ButtonToolbar>
-                <h3>
-                    {shouldRenderTime && <Timer duration={this.state.timer} sendSurveyProp={this.sendSurvey}/>}
+                <h3 className="time">
+                    {shouldRenderTime && <Timer duration={this.state.timer} sendSurveyProp={this.sendSurvey} />}
                 </h3>
                 <br />
                 <br />
