@@ -1,13 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import { setupIonicReact } from '@ionic/react';
+import '@ionic/react/css/core.css';
 import reportWebVitals from './reportWebVitals';
-import Surveys from './Survey/Surveys';
+import SurveyView from './SurveyView';
+import 'bootstrap/dist/css/bootstrap.css';
+
+setupIonicReact();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <Surveys />
+    <SurveyView />
   </React.StrictMode>
 );
 
